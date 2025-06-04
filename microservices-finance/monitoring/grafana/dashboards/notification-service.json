@@ -1,0 +1,327 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Notification Service Metrics",
+    "tags": ["notification-service", "microservices", "messaging"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Notifications Sent by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(notifications_sent_total{service=\"notification-service\"}[5m])) by (type)",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Notifications/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Notifications by Channel",
+        "type": "pie",
+        "targets": [
+          {
+            "expr": "sum(notifications_sent_total{service=\"notification-service\"}) by (channel)",
+            "legendFormat": "{{channel}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Notification Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(notifications_sent_total{status=\"sent\"}[5m])) / sum(rate(notifications_sent_total[5m])) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 90
+                },
+                {
+                  "color": "green",
+                  "value": 98
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active WebSocket Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "websocket_connections_active{service=\"notification-service\"}",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Notification Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(notification_latency_seconds_bucket{service=\"notification-service\"}[5m])) by (le, channel))",
+            "legendFormat": "{{channel}} p95"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(notification_latency_seconds_bucket{service=\"notification-service\"}[5m])) by (le, channel))",
+            "legendFormat": "{{channel}} p50"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Notification Queue Sizes",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "queue_size{service=\"notification-service\"}",
+            "legendFormat": "{{queue_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Jobs"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Failed Notifications by Channel",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(notifications_sent_total{status=\"failed\"}[5m])) by (channel)",
+            "legendFormat": "{{channel}} failures"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Failures/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "Email Delivery Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(notifications_sent_total{channel=\"email\", status=\"sent\"})",
+            "legendFormat": "Sent"
+          },
+          {
+            "expr": "sum(notifications_sent_total{channel=\"email\", status=\"failed\"})",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 9,
+        "title": "SMS Delivery Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(notifications_sent_total{channel=\"sms\", status=\"sent\"})",
+            "legendFormat": "Sent"
+          },
+          {
+            "expr": "sum(notifications_sent_total{channel=\"sms\", status=\"failed\"})",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 24
+        }
+      },
+      {
+        "id": 10,
+        "title": "Push Notification Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(notifications_sent_total{channel=\"push\", status=\"sent\"})",
+            "legendFormat": "Sent"
+          },
+          {
+            "expr": "sum(notifications_sent_total{channel=\"push\", status=\"failed\"})",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 11,
+        "title": "Notification Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(notifications_sent_total[5m])) by (type, status)",
+            "legendFormat": "{{type}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Notifications/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 24
+        }
+      }
+    ]
+  }
+}

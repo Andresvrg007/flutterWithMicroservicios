@@ -1,0 +1,290 @@
+# 🐳 DOCKER COMPOSE - MICROSERVICES ORCHESTRATION
+# Orquestación completa de la arquitectura de microservicios
+
+version: '3.8'
+
+networks:
+  finance-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+  postgres-data:
+  mongodb-data:
+
+services:
+  # ================================
+  # 🗄️ DATABASES & CACHE
+  # ================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: finance-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mongodb:
+    image: mongo:6
+    container_name: finance-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: finance123
+      MONGO_INITDB_DATABASE: finance
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # 🔧 LEGACY BACKEND (Your existing)
+  # ================================
+  
+  legacy-backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: finance-legacy-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - mongodb
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # 🚪 API GATEWAY
+  # ================================
+  
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: finance-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
+      LEGACY_BACKEND_URL: http://legacy-backend:3000
+      PROCESSING_SERVICE_URL: http://processing-service:8081
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082
+      REDIS_URL: redis://redis:6379
+      RATE_LIMIT_MAX_REQUESTS: 100
+      ENABLE_REQUEST_LOGGING: "true"
+    depends_on:
+      - redis
+      - legacy-backend
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # ⚡ PROCESSING SERVICE (Multiple instances)
+  # ================================
+  
+  processing-service-1:
+    build:
+      context: ./processing-service
+      dockerfile: Dockerfile
+    container_name: finance-processing-1
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      NODE_ENV: production
+      PORT: 8081
+      INSTANCE_ID: processing-1
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      MAX_WORKERS: 4
+      QUEUE_NAME: finance-processing
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  processing-service-2:
+    build:
+      context: ./processing-service
+      dockerfile: Dockerfile
+    container_name: finance-processing-2
+    restart: unless-stopped
+    ports:
+      - "8083:8081"
+    environment:
+      NODE_ENV: production
+      PORT: 8081
+      INSTANCE_ID: processing-2
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      MAX_WORKERS: 4
+      QUEUE_NAME: finance-processing
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # 🔔 NOTIFICATION SERVICE
+  # ================================
+  
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: finance-notifications
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      NODE_ENV: production
+      PORT: 8082
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+      EMAIL_SERVICE: ${EMAIL_SERVICE}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # ⚖️ NGINX LOAD BALANCER
+  # ================================
+  
+  nginx-lb:
+    image: nginx:alpine
+    container_name: finance-nginx-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./load-balancer/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./load-balancer/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - api-gateway
+      - processing-service-1
+      - processing-service-2
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # 📊 MONITORING & OBSERVABILITY
+  # ================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: finance-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - finance-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: finance-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - finance-network
+
+  # ================================
+  # 🧪 TESTING & UTILITIES
+  # ================================
+  
+  test-runner:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.test
+    container_name: finance-test-runner
+    profiles:
+      - testing
+    environment:
+      API_GATEWAY_URL: http://api-gateway:8080
+      PROCESSING_SERVICE_URL: http://processing-service-1:8081
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082
+    depends_on:
+      - api-gateway
+      - processing-service-1
+      - notification-service
+    networks:
+      - finance-network
+    command: ["npm", "run", "test:integration"]

@@ -1,0 +1,35 @@
+# Test runner for integration tests
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install testing dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
+
+# Install development dependencies for testing
+RUN npm install --save-dev \
+    jest \
+    supertest \
+    axios \
+    @types/jest
+
+# Copy test files
+COPY . .
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create test results directory
+RUN mkdir -p /app/test-results
+
+# Set environment variables
+ENV NODE_ENV=test
+ENV TIMEOUT=30000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Default command
+CMD ["npm", "run", "test:integration"]

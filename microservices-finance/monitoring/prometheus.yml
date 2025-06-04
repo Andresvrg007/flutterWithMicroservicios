@@ -1,0 +1,186 @@
+# Prometheus configuration for microservices monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'microservices-finance'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    params:
+      format: ['prometheus']
+
+  # Processing Service Instances
+  - job_name: 'processing-service'
+    static_configs:
+      - targets: 
+          - 'processing-service-1:8081'
+          - 'processing-service-2:8081'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Notification Service
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Legacy Backend
+  - job_name: 'legacy-backend'
+    static_configs:
+      - targets: ['legacy-backend:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # NGINX Load Balancer
+  - job_name: 'nginx-lb'
+    static_configs:
+      - targets: ['nginx-lb:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 30s
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # MongoDB
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb:27017']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Node Exporter (if available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Docker containers metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s
+
+# Recording rules for aggregations
+recording_rules:
+  - name: microservices_aggregations
+    rules:
+      # Request rate
+      - record: microservice:http_requests:rate5m
+        expr: sum(rate(http_requests_total[5m])) by (service, method, status)
+      
+      # Error rate
+      - record: microservice:http_errors:rate5m
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+      
+      # Response time percentiles
+      - record: microservice:http_request_duration:p95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+      
+      - record: microservice:http_request_duration:p99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+      
+      # Queue metrics
+      - record: microservice:queue_size:avg
+        expr: avg(queue_size) by (service, queue_name)
+      
+      # Memory usage
+      - record: microservice:memory_usage:avg
+        expr: avg(memory_usage_bytes) by (service)
+      
+      # CPU usage
+      - record: microservice:cpu_usage:avg
+        expr: avg(cpu_usage_percent) by (service)
+
+# Alerting rules
+alerting_rules:
+  - name: microservices_alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: microservice:http_errors:rate5m > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Service {{ $labels.service }} has error rate above 10% for 5 minutes"
+      
+      # High response time
+      - alert: HighResponseTime
+        expr: microservice:http_request_duration:p95 > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "Service {{ $labels.service }} 95th percentile response time is above 1 second"
+      
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.instance }} has been down for more than 2 minutes"
+      
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: microservice:memory_usage:avg > 1073741824  # 1GB
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Service {{ $labels.service }} memory usage is above 1GB"
+      
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: microservice:cpu_usage:avg > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "Service {{ $labels.service }} CPU usage is above 80%"
+      
+      # Large queue size
+      - alert: LargeQueueSize
+        expr: microservice:queue_size:avg > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large queue size"
+          description: "Queue {{ $labels.queue_name }} in service {{ $labels.service }} has more than 1000 jobs"

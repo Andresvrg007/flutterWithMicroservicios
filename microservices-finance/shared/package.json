@@ -1,0 +1,42 @@
+{
+  "name": "@finance-app/shared",
+  "version": "1.0.0",
+  "description": "Shared components, utilities and middleware for finance microservices",
+  "main": "index.js",  "scripts": {
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "build": "echo 'Building shared package...'",
+    "prepublishOnly": "npm run lint && npm run test"
+  },"dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "joi": "^17.11.0",
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "prom-client": "^14.2.0",
+    "express-rate-limit": "^7.1.5",
+    "rate-limit-redis": "^4.2.0",
+    "ioredis": "^5.3.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.6.4",
+    "eslint": "^8.47.0"
+  },
+  "keywords": [
+    "microservices",
+    "shared",
+    "middleware",
+    "utilities",
+    "finance"
+  ],
+  "author": "Finance App Team",
+  "license": "MIT"
+}
