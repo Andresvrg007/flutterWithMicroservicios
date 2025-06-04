@@ -1,0 +1,251 @@
+# 🚫 GIT IGNORE - FLUTTER WITH MICROSERVICES PROJECT
+# Archivo gitignore completo para el proyecto Flutter + Microservicios
+
+# ================================
+# 📱 FLUTTER / DART
+# ================================
+# Build outputs
+/build/
+/android/app/build/
+/ios/build/
+/linux/build/
+/macos/build/
+/web/build/
+/windows/build/
+
+# Cache & generated files
+.dart_tool/
+.packages
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.fvm/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ================================
+# 🐳 DOCKER
+# ================================
+# Ignore Docker volumes and data
+docker-data/
+postgres-data/
+mongodb-data/
+redis-data/
+
+# ================================
+# 🎯 NODE.JS / NPM
+# ================================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# ESLint cache
+.eslintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# ================================
+# 🔐 ENVIRONMENT & SECRETS
+# ================================
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Firebase credentials
+firebase-adminsdk-*.json
+serviceAccountKey.json
+
+# API Keys and secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ================================
+# 📊 LOGS & TEMPORARY FILES
+# ================================
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ================================
+# 🔧 BUILD TOOLS & EDITORS
+# ================================
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ================================
+# 🏗️ BACKEND SPECIFIC
+# ================================
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Upload folders
+uploads/
+public/uploads/
+
+# ================================
+# 🧪 TESTING
+# ================================
+# Test coverage
+coverage/
+.nyc_output/
+test-results/
+screenshots/
+
+# ================================
+# 📦 PACKAGE MANAGERS
+# ================================
+# Yarn
+.yarn/
+.pnp.*
+
+# PNPM
+.pnpm-debug.log*
+
+# ================================
+# 🔄 CI/CD
+# ================================
+# GitHub Actions
+.github/workflows/secrets/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ================================
+# 📱 MOBILE SPECIFIC
+# ================================
+# Android
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/app/google-services.json
+
+# iOS
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/
+ios/Flutter/flutter_assets/
+ios/Flutter/App.framework/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/ServiceDefinitions.json
+ios/Runner/GoogleService-Info.plist
+
+# ================================
+# 🌐 WEB SPECIFIC  
+# ================================
+# Web build
+web/dist/
+web/.firebase/
+
+# ================================
+# 💾 BACKUP FILES
+# ================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+
+# ================================
+# 🗂️ SYSTEM FILES
+# ================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.nfs*
