@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import authRoutes from './routes/auth.js';
 import categoryRoutes from './routes/categories.js';
+import transactionRoutes from './routes/transactions.js';
 import cookieParser from "cookie-parser";
 
 // Load environment variables
@@ -43,6 +44,7 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(() => {
     app.use('/api', authRoutes);
     app.use('/api', categoryRoutes);
+    app.use('/api/transactions', transactionRoutes);
     
     app.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);

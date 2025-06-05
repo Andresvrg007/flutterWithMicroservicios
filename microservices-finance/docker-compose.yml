@@ -173,7 +173,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
   # ================================
   # 🔔 NOTIFICATION SERVICE
   # ================================
@@ -195,6 +194,8 @@ services:
       EMAIL_SERVICE: ${EMAIL_SERVICE}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASS: ${EMAIL_PASS}
+      VAPID_PUBLIC_KEY: BHHprq_rl_mF0SRJKzbE3DArCr3VfQT-ZsCaEYirMTOrKO0IfrRBi5on_edVcRf0_GWXhGXTujlafoovUw_Arwj0
+      VAPID_PRIVATE_KEY: fbnrUeVmhy2AB7Z5XDz_oQyjzJ2_o4Qgr5YYSC2d3ZU
     depends_on:
       - redis
       - mongodb

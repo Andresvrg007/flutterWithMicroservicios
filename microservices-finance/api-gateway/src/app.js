@@ -15,6 +15,7 @@ const requestLogger = require('./middleware/requestLogger');
 // Import routes
 const transactionRoutes = require('./routes/transactions');
 const authRoutes = require('./routes/auth');
+const categoryRoutes = require('./routes/categories');
 const processingRoutes = require('./routes/processing');
 const notificationRoutes = require('./routes/notifications');
 const healthRoutes = require('./routes/health');
@@ -84,6 +85,7 @@ app.use('/api/auth', authRoutes);
 
 // Protected routes (auth required)
 app.use('/api/transactions', authMiddleware, transactionRoutes);
+app.use('/api/categories', authMiddleware, categoryRoutes);
 app.use('/api/processing', authMiddleware, processingRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
 
@@ -96,11 +98,11 @@ app.get('/', (req, res) => {
     service: 'Finance API Gateway',
     version: process.env.API_VERSION || 'v1',
     status: 'running',
-    timestamp: new Date().toISOString(),
-    endpoints: {
+    timestamp: new Date().toISOString(),    endpoints: {
       health: '/health',
       auth: '/api/auth/*',
       transactions: '/api/transactions/*',
+      categories: '/api/categories/*',
       processing: '/api/processing/*',
       notifications: '/api/notifications/*'
     },
@@ -122,7 +124,7 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
     message: `The requested endpoint ${req.originalUrl} does not exist`,
-    availableEndpoints: ['/health', '/api/auth', '/api/transactions', '/api/processing', '/api/notifications']
+    availableEndpoints: ['/health', '/api/auth', '/api/transactions', '/api/categories', '/api/processing', '/api/notifications']
   });
 });
 

@@ -8,13 +8,12 @@ Write-Host "=====================================" -ForegroundColor Blue
 # Función para mostrar mensaje con color
 function Write-StatusMessage {
     param([string]$Message, [string]$Status, [string]$Color = "White")
-    
-    $statusIcon = switch ($Status) {
-        "OK" { "✅" }
-        "ERROR" { "❌" }
-        "WARNING" { "⚠️" }
-        "INFO" { "ℹ️" }
-        default { "🔍" }
+      $statusIcon = switch ($Status) {
+        "OK" { "[OK]" }
+        "ERROR" { "[ERROR]" }
+        "WARNING" { "[WARNING]" }
+        "INFO" { "[INFO]" }
+        default { "[CHECK]" }
     }
     
     Write-Host "$statusIcon $Message" -ForegroundColor $Color

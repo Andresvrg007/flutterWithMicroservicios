@@ -5,7 +5,7 @@ import '../models/user_model.dart';
 
 class ApiService {
   // URL base de la API
-  static const String baseUrl = 'http://10.0.0.27:5000/api';
+  static const String baseUrl = 'http://10.0.0.28:8080/api';
 
   // Headers comunes para todas las peticiones
   Map<String, String> get _headers => {'Content-Type': 'application/json'};
@@ -43,21 +43,33 @@ class ApiService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('$baseUrl/auth/login'),
         headers: _headers,
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      final data = jsonDecode(response.body);
+      // Intenta decodificar la respuesta, pero si falla, lanza error genérico
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        throw Exception('Respuesta inesperada del servidor: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
-        // Guardar token si el login es exitoso
         if (data['token'] != null) {
           await _saveToken(data['token']);
         }
         return data;
       } else {
-        throw Exception(data['message'] ?? 'Error en login');
+        // Manejar error: si data es String, conviértelo a Map
+        if (data is String) {
+          throw Exception(data);
+        } else if (data.containsKey('message')) {
+          throw Exception(data['message']);
+        } else {
+          throw Exception('Error en login');
+        }
       }
     } catch (e) {
       throw Exception('Error de conexión: $e');
@@ -72,7 +84,7 @@ class ApiService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('$baseUrl/auth/register'),
         headers: _headers,
         body: jsonEncode({
           'username': name,
@@ -81,7 +93,12 @@ class ApiService {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        throw Exception('Respuesta inesperada del servidor');
+      }
 
       if (response.statusCode == 201) {
         return data;
@@ -97,7 +114,7 @@ class ApiService {
   Future<void> logout() async {
     try {
       await http.post(
-        Uri.parse('$baseUrl/logout'),
+        Uri.parse('$baseUrl/auth/logout'),
         headers: await _authHeaders,
       );
       // Eliminar token local independientemente de la respuesta
@@ -326,7 +343,7 @@ class ApiService {
       print('📤 Sending request body: $requestBody');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/transaction'),
+        Uri.parse('$baseUrl/transactions'),
         headers: await _authHeaders,
         body: jsonEncode(requestBody),
       );
@@ -425,7 +442,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/transaction/$id'),
+        Uri.parse('$baseUrl/transactions/$id'),
         headers: await _authHeaders,
         body: jsonEncode({
           'amount': amount,
@@ -448,7 +465,7 @@ class ApiService {
   Future<void> deleteTransaction(String id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/transaction/$id'),
+        Uri.parse('$baseUrl/transactions/$id'),
         headers: await _authHeaders,
       );
 

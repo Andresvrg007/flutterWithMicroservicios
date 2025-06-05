@@ -55,31 +55,55 @@ const io = socketIo(server, {
   }
 });
 
-// Firebase Admin SDK initialization
+// Firebase Admin SDK initialization (with error handling)
+let firebaseInitialized = false;
 if (process.env.FCM_PROJECT_ID) {
-  const serviceAccount = {
-    type: "service_account",
-    project_id: process.env.FCM_PROJECT_ID,
-    private_key_id: process.env.FCM_PRIVATE_KEY_ID,
-    private_key: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    client_email: process.env.FCM_CLIENT_EMAIL,
-    client_id: process.env.FCM_CLIENT_ID,
-    auth_uri: process.env.FCM_AUTH_URI,
-    token_uri: process.env.FCM_TOKEN_URI
-  };
+  try {
+    const serviceAccount = {
+      type: "service_account",
+      project_id: process.env.FCM_PROJECT_ID,
+      private_key_id: process.env.FCM_PRIVATE_KEY_ID,
+      private_key: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      client_email: process.env.FCM_CLIENT_EMAIL,
+      client_id: process.env.FCM_CLIENT_ID,
+      auth_uri: process.env.FCM_AUTH_URI,
+      token_uri: process.env.FCM_TOKEN_URI
+    };
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+    // Only initialize if we have valid credentials
+    if (serviceAccount.private_key && serviceAccount.client_email) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      firebaseInitialized = true;
+      console.log('✅ Firebase Admin SDK initialized successfully');
+    } else {
+      console.log('🔄 Firebase credentials incomplete, using mock notifications');
+    }
+  } catch (error) {
+    console.warn('⚠️  Firebase Admin SDK initialization failed:', error.message);
+    console.log('🔄 Continuing with mock notifications...');
+  }
+} else {
+  console.log('🔄 Firebase credentials not found, using mock notifications');
 }
 
 // Web Push setup
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+try {
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    // Set VAPID details and let the web-push library validate the keys
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:admin@finance-app.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    console.log('✅ Web Push VAPID keys configured successfully');
+  } else {
+    console.log('⚠️  VAPID keys not configured, web push notifications disabled');
+  }
+} catch (error) {
+  console.log('⚠️  VAPID keys configuration failed:', error.message);
+  console.log('🔄 Continuing without web push notifications...');
 }
 
 // Redis connection

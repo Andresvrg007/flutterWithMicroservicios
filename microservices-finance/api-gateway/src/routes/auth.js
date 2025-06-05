@@ -1,18 +1,25 @@
-// 🔐 AUTH ROUTES - PROXY TO LEGACY BACKEND
+// 🔐 AUTH ROUTES - PROXY TO AUTH SERVICE
 // Maneja autenticación (login, register, etc.)
 
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const LEGACY_BACKEND_URL = process.env.LEGACY_BACKEND_URL || 'http://localhost:3000';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://legacy-backend:3000';
 
 // Helper function to proxy auth requests
 const proxyAuthRequest = async (req, res, method, endpoint) => {
   try {
+    console.log(`🔍 DEBUG - AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}`);
+    console.log(`🔍 DEBUG - method: ${method}`);
+    console.log(`🔍 DEBUG - endpoint: ${endpoint}`);    console.log(`🔍 DEBUG - req.originalUrl: ${req.originalUrl}`);
+    console.log(`🔍 DEBUG - req.url: ${req.url}`);
+      const targetUrl = `${AUTH_SERVICE_URL}/api${endpoint}`;
+    console.log(`🔍 DEBUG - CONSTRUCTED URL: ${targetUrl}`);
+    
     const config = {
       method: method,
-      url: `${LEGACY_BACKEND_URL}/api/auth${endpoint}`,
+      url: targetUrl,
       headers: {
         'Content-Type': 'application/json',
       },
