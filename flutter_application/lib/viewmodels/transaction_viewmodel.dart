@@ -2,9 +2,12 @@
 import 'package:flutter/foundation.dart';
 import '../models/transaction_model.dart';
 import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TransactionViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final PushNotificationService _pushService = PushNotificationService();
 
   List<Transaction> _transactions = [];
   List<Transaction> _incomeTransactions = [];
@@ -58,7 +61,7 @@ class TransactionViewModel extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
-      await _apiService.createTransaction(
+      final response = await _apiService.createTransaction(
         amount: amount,
         description: description,
         category: category,
@@ -66,6 +69,27 @@ class TransactionViewModel extends ChangeNotifier {
         type: type,
         metodoPago: metodoPago,
       );
+
+      // 🔔 Enviar notificación push de transacción creada
+      try {
+        final userId = await _getUserIdFromToken();
+        
+        if (userId != null) {
+          final transactionData = {
+            '_id': response['transaction']?['_id'] ?? 'unknown',
+            'amount': amount,
+            'description': description,
+            'tipo': type,
+            'category': category,
+            'fecha': DateTime.now().toIso8601String(),
+          };
+          
+          await _pushService.notifyTransactionCreated(transactionData, userId);
+          // print('🔔 Notificación de transacción enviada');
+        }
+      } catch (e) {
+        // print('⚠️ Error enviando notificación de transacción: $e');
+      }
 
       // Recargar transacciones después de crear
       await loadTransactions();
@@ -75,6 +99,16 @@ class TransactionViewModel extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  // Helper method to get user ID from token
+  Future<String?> _getUserIdFromToken() async {
+    try {
+      // For now, return a mock user ID - in real app you'd decode the JWT
+      return 'flutter-user-${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      return null;
     }
   }
 

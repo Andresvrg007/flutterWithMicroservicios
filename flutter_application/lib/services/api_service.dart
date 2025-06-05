@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
 class ApiService {
-  // URL base de la API
-  static const String baseUrl = 'http://10.0.0.28:8080/api';
+  // URL base de la API - 10.0.2.2 para emulador Android
+  static const String baseUrl = 'http://10.0.2.2:8080/api';
 
   // Headers comunes para todas las peticiones
   Map<String, String> get _headers => {'Content-Type': 'application/json'};

@@ -72,7 +72,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: your_super_secret_jwt_key_finance_microservices_2024_production
     depends_on:
       - mongodb
     networks:
@@ -98,7 +98,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8080
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: your_super_secret_jwt_key_finance_microservices_2024_production
       LEGACY_BACKEND_URL: http://legacy-backend:3000
       PROCESSING_SERVICE_URL: http://processing-service:8081
       NOTIFICATION_SERVICE_URL: http://notification-service:8082
@@ -134,6 +134,7 @@ services:
       INSTANCE_ID: processing-1
       REDIS_URL: redis://redis:6379
       MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      JWT_SECRET: your_super_secret_jwt_key_finance_microservices_2024_production
       MAX_WORKERS: 4
       QUEUE_NAME: finance-processing
     depends_on:
@@ -161,6 +162,7 @@ services:
       INSTANCE_ID: processing-2
       REDIS_URL: redis://redis:6379
       MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      JWT_SECRET: your_super_secret_jwt_key_finance_microservices_2024_production
       MAX_WORKERS: 4
       QUEUE_NAME: finance-processing
     depends_on:
@@ -173,6 +175,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
   # ================================
   # 🔔 NOTIFICATION SERVICE
   # ================================
@@ -190,6 +193,7 @@ services:
       PORT: 8082
       REDIS_URL: redis://redis:6379
       MONGODB_URI: mongodb://admin:finance123@mongodb:27017/finance?authSource=admin
+      JWT_SECRET: your_super_secret_jwt_key_finance_microservices_2024_production
       FCM_SERVER_KEY: ${FCM_SERVER_KEY}
       EMAIL_SERVICE: ${EMAIL_SERVICE}
       EMAIL_USER: ${EMAIL_USER}

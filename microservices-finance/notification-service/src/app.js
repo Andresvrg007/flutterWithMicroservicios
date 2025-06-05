@@ -620,6 +620,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/finance_n
   console.error('MongoDB connection error:', error);
 });
 
+// Initialize notification workers
+require('./workers/notificationWorkers');
+
 // Start servers
 app.listen(PORT, () => {
   console.log(`Notification service running on port ${PORT}`);

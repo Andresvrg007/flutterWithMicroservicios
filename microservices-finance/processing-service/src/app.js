@@ -133,6 +133,51 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
+// Transaction Processing Route (NEW)
+app.post('/api/process', async (req, res) => {
+  try {
+    const { type, userId, transactionId, data } = req.body;
+    
+    if (!type || !userId || !data) {
+      return res.status(400).json({ error: 'Type, userId, and data are required' });
+    }
+
+    // Process transaction analysis
+    if (type === 'transaction_analysis') {
+      const job = await calculationQueue.add('transaction-analysis', {
+        userId,
+        transactionId,
+        transactionData: data,
+        timestamp: new Date()
+      }, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+        timeout: 30000
+      });
+
+      processingJobsTotal.labels('transaction', 'created').inc();
+
+      console.log(`✅ Transaction analysis job created: ${job.id} for transaction ${transactionId}`);
+
+      res.json({
+        success: true,
+        jobId: job.id,
+        status: 'queued',
+        message: 'Transaction analysis job created'
+      });
+    } else {
+      return res.status(400).json({ error: 'Unknown processing type' });
+    }
+  } catch (error) {
+    console.error('Transaction processing error:', error);
+    processingJobsTotal.labels('transaction', 'failed').inc();
+    res.status(500).json({ error: 'Failed to create transaction processing job' });
+  }
+});
+
 // PDF Generation Routes
 app.post('/api/pdf/generate', authenticateToken, async (req, res) => {
   try {

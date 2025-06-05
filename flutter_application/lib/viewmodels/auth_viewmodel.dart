@@ -2,20 +2,24 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final PushNotificationService _pushService = PushNotificationService();
 
   bool _isLoading = false;
   String? _errorMessage;
   bool _isLoggedIn = false;
   String? _userEmail;
+  String? _userId;
 
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _isLoggedIn;
   String? get userEmail => _userEmail;
+  String? get userId => _userId;
 
   // Setters privados
   void setLoading(bool loading) {
@@ -55,6 +59,26 @@ class AuthViewModel extends ChangeNotifier {
       if (response['success'] == true) {
         _isLoggedIn = true;
         _userEmail = email;
+        _userId = response['user']?['id'] ?? response['userId'];
+        
+        // 🔔 Registrar dispositivo para push notifications
+        try {
+          await _pushService.registerDevice();
+          // print('📱 Dispositivo registrado para push notifications');
+        } catch (e) {
+          // print('⚠️ Error registrando dispositivo: $e');
+        }
+        
+        // 🔔 Enviar notificación de login
+        if (_userId != null) {
+          try {
+            await _pushService.notifyLogin(_userId!, email);
+            // print('🔔 Notificación de login enviada');
+          } catch (e) {
+            // print('⚠️ Error enviando notificación de login: $e');
+          }
+        }
+        
         return true;
       } else {
         setError(response['message'] ?? 'Login failed');
@@ -119,8 +143,29 @@ class AuthViewModel extends ChangeNotifier {
     await _apiService.logout();
     _isLoggedIn = false;
     _userEmail = null;
+    _userId = null;
     clearError();
     notifyListeners();
+  }
+
+  // 🔔 Enviar notificación de prueba
+  Future<bool> sendTestNotification() async {
+    if (_userId == null) {
+      setError('No user logged in');
+      return false;
+    }
+    
+    try {
+      setLoading(true);
+      await _pushService.sendTestNotification(_userId!);
+      // print('🔔 Notificación de prueba enviada exitosamente');
+      return true;
+    } catch (e) {
+      setError('Error enviando notificación: [${e.toString()}');
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }
 
   //  AGREGAR ESTE MÉTODO - Forgot Password

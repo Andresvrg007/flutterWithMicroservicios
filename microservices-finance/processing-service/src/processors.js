@@ -17,9 +17,8 @@ pdfQueue.process('generate-pdf', QUEUE_CONCURRENCY, async (job) => {
   const { type, data, options, userId } = job.data;
   
   job.progress(10);
-  
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(path.join(__dirname, 'pdf-worker.js'), {
+    return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, 'workers/pdf-worker.js'), {
       workerData: { type, data, options, userId }
     });
     
@@ -56,9 +55,8 @@ calculationQueue.process('portfolio-analysis', QUEUE_CONCURRENCY, async (job) =>
   const { transactions, settings, userId } = job.data;
   
   job.progress(10);
-  
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(path.join(__dirname, 'calculation-worker.js'), {
+    return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, 'workers/calculation-worker.js'), {
       workerData: { 
         operation: 'portfolio-analysis',
         transactions, 
@@ -101,7 +99,7 @@ calculationQueue.process('bulk-calculations', QUEUE_CONCURRENCY, async (job) => 
   job.progress(5);
   
   return new Promise((resolve, reject) => {
-    const worker = new Worker(path.join(__dirname, 'calculation-worker.js'), {
+    const worker = new Worker(path.join(__dirname, 'workers/calculation-worker.js'), {
       workerData: { 
         operation: 'bulk-calculations',
         operations, 
@@ -131,6 +129,53 @@ calculationQueue.process('bulk-calculations', QUEUE_CONCURRENCY, async (job) => 
       currentProgress = Math.min(95, currentProgress + 5);
       job.progress(currentProgress);
     }, 2000);
+    
+    worker.on('message', () => {
+      clearInterval(progressInterval);
+      job.progress(100);
+    });
+  });
+});
+
+// Transaction Analysis Processor (NEW)
+calculationQueue.process('transaction-analysis', QUEUE_CONCURRENCY, async (job) => {
+  const { userId, transactionId, transactionData } = job.data;
+  
+  job.progress(10);
+  console.log(`🔍 Processing transaction analysis for transaction ${transactionId}`);
+  
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, 'workers/transaction-worker.js'), {
+      workerData: { 
+        userId,
+        transactionId,
+        transactionData,
+        timestamp: new Date()
+      }
+    });
+    
+    worker.on('message', (result) => {
+      if (result.error) {
+        reject(new Error(result.error));
+      } else {
+        resolve(result);
+      }
+    });
+    
+    worker.on('error', reject);
+    
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+    
+    // Update progress
+    let currentProgress = 10;
+    const progressInterval = setInterval(() => {
+      currentProgress = Math.min(90, currentProgress + 20);
+      job.progress(currentProgress);
+    }, 1000);
     
     worker.on('message', () => {
       clearInterval(progressInterval);

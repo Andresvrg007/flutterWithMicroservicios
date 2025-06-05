@@ -1,0 +1,9 @@
+# Archivos a excluir del contexto de Docker
+.env
+.env.local
+.env.example
+node_modules
+npm-debug.log
+README.md
+.git
+.gitignore

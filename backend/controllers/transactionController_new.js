@@ -4,6 +4,7 @@ import Category from '../models/Category.js';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import axios from 'axios';
 
 // Helper function to get user ID from token
 const getUserIdFromToken = (req) => {
@@ -13,6 +14,85 @@ const getUserIdFromToken = (req) => {
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     return decoded.userId || decoded.id;
+};
+
+// Helper function to send notification
+const sendNotification = async (userId, type, transactionData) => {
+    try {
+        const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3004';
+        
+        let title, message;
+        
+        if (type === 'transaction_created') {
+            title = `New ${transactionData.tipo === 'ingreso' ? 'Income' : 'Expense'} Added`;
+            message = `${transactionData.tipo === 'ingreso' ? 'Income' : 'Expense'} of $${transactionData.amount} for ${transactionData.description} has been recorded.`;
+        }
+        
+        const notificationData = {
+            type: 'transactionAlerts',
+            title,
+            message,
+            channels: ['push', 'websocket'],
+            recipients: [userId],
+            data: {
+                transactionId: transactionData._id,
+                amount: transactionData.amount,
+                type: transactionData.tipo,
+                category: transactionData.category,
+                description: transactionData.description,
+                timestamp: transactionData.fecha
+            },
+            priority: 'normal'
+        };
+        
+        // Generate a simple JWT token for the notification service
+        const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        
+        await axios.post(`${notificationServiceUrl}/api/notifications/send`, notificationData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 5000
+        });
+        
+        console.log(`✅ Notification sent for transaction ${transactionData._id}`);
+    } catch (error) {
+        console.error('❌ Failed to send notification:', error.message);
+        // Don't fail the transaction if notification fails
+    }
+};
+
+// Helper function to send processing request
+const sendProcessingRequest = async (userId, transactionData) => {
+    try {
+        const processingServiceUrl = process.env.PROCESSING_SERVICE_URL || 'http://localhost:3003';
+        
+        const processingData = {
+            type: 'transaction_analysis',
+            userId,
+            transactionId: transactionData._id,
+            data: {
+                amount: transactionData.amount,
+                type: transactionData.tipo,
+                category: transactionData.category,
+                description: transactionData.description,
+                date: transactionData.fecha
+            }
+        };
+        
+        await axios.post(`${processingServiceUrl}/api/process`, processingData, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 5000
+        });
+        
+        console.log(`✅ Processing request sent for transaction ${transactionData._id}`);
+    } catch (error) {
+        console.error('❌ Failed to send processing request:', error.message);
+        // Don't fail the transaction if processing request fails
+    }
 };
 
 // Create a new transaction
@@ -88,6 +168,18 @@ export const addTransaction = async (req, res) => {
             user.balance -= Number(amount);
         }
         await user.save();
+
+        // Send notification and processing request asynchronously
+        Promise.allSettled([
+            sendNotification(userId, 'transaction_created', transaction),
+            sendProcessingRequest(userId, transaction)
+        ]).then(results => {
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`❌ Async operation ${index} failed:`, result.reason);
+                }
+            });
+        });
 
         res.status(201).json({ 
             success: true,
