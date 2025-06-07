@@ -5,7 +5,7 @@ import '../models/user_model.dart';
 
 class ApiService {
   // URL base de la API - 10.0.2.2 para emulador Android
-  static const String baseUrl = 'http://10.0.2.2:8080/api';
+  static const String baseUrl = 'https://fib6kv6lxa.execute-api.us-east-1.amazonaws.com';
 
   // Headers comunes para todas las peticiones
   Map<String, String> get _headers => {'Content-Type': 'application/json'};
